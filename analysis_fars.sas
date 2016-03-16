@@ -1,0 +1,393 @@
+
+/*
+Author - Ishan Gajurel
+Data source - http://www.nhtsa.gov/FARS
+Documentation of dataset - http://www-nrd.nhtsa.dot.gov/Pubs/812092.pdf
+*/
+
+
+/*
+proc hadoop;
+hdfs ls='/contest/data/FARS/2012/SAS';
+run;
+
+libname fars2012 spde '/contest/data/FARS/2012/SAS' hdfshost=default;
+proc contents data=fars2012._all_;
+run;
+
+proc contents data=fars2013._all_;
+run;
+*/
+
+LIBNAME DATA2011 spde "/contest/data/FARS/2011/SAS"  hdfshost=default;
+LIBNAME DATA2012 spde "/contest/data/FARS/2012/SAS"  hdfshost=default;
+LIBNAME DATA2013 spde "/contest/data/FARS/2013/SAS"  hdfshost=default;
+
+
+/*Merge dataset 2011*/
+
+/*SORT*/
+proc sort data=DATA2011.PARKWORK out=WORK.sortPARW2011 equals;
+	by ST_CASE;
+run;
+
+proc sort data=DATA2011.PERSON out=WORK.sortPER2011 equals;
+	by ST_CASE;
+run;
+
+proc sort data=DATA2011.VEHICLE out=WORK.sortVEH2011 equals;
+	by ST_CASE;
+RUN;
+
+proc sort data=DATA2011.ACCIDENT out=WORK.sortACC2011 equals;
+	by ST_CASE;
+RUN;
+
+proc sort data=DATA2011.VIOLATN out=WORK.sortVIO2011 equals;
+	by ST_CASE;
+RUN;
+
+proc sort data=DATA2011.MANEUVER out=WORK.sortMAN2011 equals;
+	by ST_CASE;
+RUN;
+
+
+DATA WORK.merged2011;
+	MERGE WORK.sortVEH2011 WORK.sortPER2011 WORK.sortVIO2011 WORK.sortPARW2011 WORK.sortMAN2011;
+	BY ST_CASE VEH_NO;
+run;
+
+DATA WORK.merged2011;
+	MERGE WORK.merged2011 WORK.sortACC2011;
+	BY ST_CASE;
+run;
+
+DATA WORK.data2011;
+	SET merged2011;
+	YEAR = 2011;
+	KEEP YEAR MAKE ROUTE VNUM_LAN SPEEDREL MDRMANAV DR_DRINK INJ_SEV BODY_TYP;
+RUN;
+
+
+/******************/
+/*Merge dataset 2012*/
+
+/*SORT*/
+proc sort data=DATA2012.PARKWORK out=WORK.sortPARW2012 equals;
+	by ST_CASE;
+run;
+
+proc sort data=DATA2012.PERSON out=WORK.sortPER2012 equals;
+	by ST_CASE;
+run;
+
+proc sort data=DATA2012.VEHICLE out=WORK.sortVEH2012 equals;
+	by ST_CASE;
+RUN;
+
+proc sort data=DATA2012.ACCIDENT out=WORK.sortACC2012 equals;
+	by ST_CASE;
+RUN;
+
+proc sort data=DATA2012.VIOLATN out=WORK.sortVIO2012 equals;
+	by ST_CASE;
+RUN;
+
+proc sort data=DATA2012.MANEUVER out=WORK.sortMAN2012 equals;
+	by ST_CASE;
+RUN;
+
+DATA WORK.merged2012;
+	MERGE WORK.sortVEH2012 WORK.sortPER2012 WORK.sortVIO2012 WORK.sortPARW2012 WORK.sortMAN2012;
+	BY ST_CASE VEH_NO;
+run;
+
+DATA WORK.merged2012;
+	MERGE WORK.merged2012 WORK.sortACC2012;
+	BY ST_CASE;
+run;
+
+DATA WORK.data2012;
+	SET merged2012;
+	YEAR = 2012;
+	KEEP YEAR MAKE ROUTE VNUM_LAN SPEEDREL MDRMANAV DR_DRINK INJ_SEV BODY_TYP;
+RUN;
+
+
+/*********************/
+/*Merge dataset 2013*/
+
+/*SORT*/
+proc sort data=DATA2013.PARKWORK out=WORK.sortPARW2013 equals;
+	by ST_CASE;
+run;
+
+proc sort data=DATA2013.PERSON out=WORK.sortPER2013 equals;
+	by ST_CASE;
+run;
+
+proc sort data=DATA2013.VEHICLE out=WORK.sortVEH2013 equals;
+	by ST_CASE;
+RUN;
+
+proc sort data=DATA2013.ACCIDENT out=WORK.sortACC2013 equals;
+	by ST_CASE;
+RUN;
+
+proc sort data=DATA2013.VIOLATN out=WORK.sortVIO2013 equals;
+	by ST_CASE;
+RUN;
+
+proc sort data=DATA2013.MANEUVER out=WORK.sortMAN2013 equals;
+	by ST_CASE;
+RUN;
+
+
+DATA WORK.merged2013;
+	MERGE WORK.sortVEH2013 WORK.sortPER2013 WORK.sortVIO2013 WORK.sortPARW2013 WORK.sortMAN2013;
+	BY ST_CASE VEH_NO;
+run;
+
+DATA WORK.merged2013;
+	MERGE WORK.merged2013 WORK.sortACC2013;
+	BY ST_CASE;
+run;
+
+DATA WORK.data2013;
+	SET merged2013;
+	YEAR = 2013;
+	KEEP YEAR MAKE ROUTE VNUM_LAN SPEEDREL MDRMANAV DR_DRINK INJ_SEV BODY_TYP;
+RUN;
+
+
+/********************/
+/*Combine data of year 2011 2012 2013*/
+
+
+data WORK.combined_data;
+   set WORK.data2011 WORK.data2012 WORK.data2013;
+run;
+
+
+/* USE THIS MERGED DATASET ABOVE FOR EXPLORATORY ANLALYTICS*/
+/*Dummy variable creation*/
+
+PROC UNIVARIATE DATA=dat;
+VAR SPEEDREL DR_DRINK MDRMANAV INJ_SEV;
+RUN;
+
+
+DATA WORK.data1;
+	SET WORK.combined_data;
+	
+	/*SPEED Related DUMMY VARS*/
+		
+	IF SPEEDREL IN (1,2,3,4,5,6,7,8) THEN SPEEDING = 1;
+	IF SPEEDREL = 0 THEN SPEEDING = 0;
+	IF SPEEDREL = 9 THEN DELETE;
+	
+
+	/*DRINKING DUMMY VARS*/
+	IF DR_DRINK=0 THEN
+		DRINKING=0;
+	ELSE
+		DRINKING=1;
+	IF DR_DRINK='.' THEN DELETE;
+	
+	/*MANAEVER DUMMY VARS*/
+	IF MDRMANAV=00 THEN
+		MANV_ATTEMPT=0;
+	ELSE
+		MANV_ATTEMPT=1;
+
+	IF MDRMANAV in (98, 99) OR MDRMANAV='.' THEN DELETE;
+		
+	/*DEPENDENT VARS*/
+	/*
+	IF (INJ_SEV =0) THEN INJ_SEV = 1;
+	IF (INJ_SEV=1) or (INJ_SEV =2) or (INJ_SEV =5) THEN INJ_SEV = 2;
+	IF (INJ_SEV =3) THEN INJ_SEV = 3;
+	IF (INJ_SEV =4) THEN INJ_SEV = 4;
+	IF INJ_SEV NOT IN (0,1,2,3,4) THEN INJ_SEV = 10;
+	*/
+	
+	
+	IF (INJ_SEV =0) THEN INJ_SEVR = 4;
+	IF (INJ_SEV=1) or (INJ_SEV =2) or (INJ_SEV =5) THEN INJ_SEVR = 3;
+	IF (INJ_SEV =3) THEN INJ_SEVR = 2;
+	IF (INJ_SEV =4) THEN INJ_SEVR = 1;
+	IF INJ_SEV NOT IN (0,1,2,3,4,5) THEN DELETE;
+	
+	/*dummy vars for route*/
+	IF ROUTE = 1 THEN INTERSTATE = 1;
+	 ELSE INTERSTATE = 0;
+	IF ROUTE = 2 THEN USHIGH = 1; ELSE USHIGH = 0;
+	IF ROUTE = 3 THEN STATEHIGH = 1; ELSE STATEHIGH = 0;
+	IF ROUTE = 4 THEN COUNTY_ROAD = 1; ELSE COUNTY_ROAD= 0;
+	IF ROUTE = 5 THEN TOWNSHIP= 1; ELSE TOWNSHIP= 0;
+	IF ROUTE = 6 THEN MUNICIPALITY = 1; ELSE MUNICIPALITY = 0;
+	IF ROUTE = 7 THEN FRONTAGE = 1; ELSE FRONTAGE = 0;
+	IF ROUTE = 8 THEN OTHER_ROUTE= 1; ELSE OTHER_ROUTE= 0;
+	
+RUN;
+
+
+
+/*************************************/
+/*MODEL SELECTION*/
+/*************************************/
+/*
+PROC MIXED data=WORK.dat(obs = 1000) covtest noclprint method = ML;
+class WEATHER;
+model INJ_SEV=AIR_BAG AGE SEX WEATHER DR_SF1 DR_SF2 DR_SF3 DR_SF4 TRAV_SP VSPD_LIM ROUTE veh_age/solution ddfm = SATTERTHWAITE;
+random intercept / sub=WEATHER type=vc;
+
+
+
+PROC MIXED data=WORK.dat(obs = 3000) covtest noclprint method = ML;
+class WEATHER;
+model INJ_SEV= DR_SF1 DR_SF2 DR_SF3 DR_SF4/solution ddfm = SATTERTHWAITE;
+random intercept / sub=WEATHER type=vc;
+*/
+
+/*
+proc surveyselect data=WORK.data1 method=SRS sampsize=50000 seed=12345 
+		out=WORK.sample;
+	id _all_;
+run;
+*/
+
+data WORK.sample;
+	set WORK.data1;
+	IF INJ_SEVR IN (1,2,3,4);
+run;
+
+PROC FREQ DATA = WORK.SAMPLE;
+	TABLES INJ_SEVR;
+RUN;
+
+
+
+/*Fit the GLIMMIX model for categorical, non-normally distributed response variables
+including binary, proportions, count or ordinal data */
+
+/*baseline*/
+
+PROC LOGISTIC DATA=WORK.sample;
+MODEL INJ_SEVR = MANV_ATTEMPT SPEEDING DRINKING STATEHIGH ROUTE;
+RUN;
+
+
+PROC REG DATA=WORK.sample;
+MODEL INJ_SEVR = SPEEDING MANV_ATTEMPT DRINKING STATEHIGH  MAKE BODY_TYP / TOL VIF;
+RUN;
+
+/*correlation*/
+PROC CORR DATA  = WORK.sample;
+VAR MAKE BODY_TYP;
+RUN;
+
+
+/*interaction class MAKE*/
+
+/*model with all predictors and moderater MAKE*/
+
+PROC GLIMMIX DATA=WORK.sample (WHERE = (YEAR=2013)) METHOD=LAPLACE NOCLPRINT;
+	CLASS MAKE;
+	MODEL INJ_SEVR = MANV_ATTEMPT SPEEDING DRINKING / CL DIST=MULTI LINK=CLOGIT SOLUTION ODDSRATIO (DIFF=FIRST LABEL);
+	RANDOM INTERCEPT / SUBJECT = MAKE TYPE=VC SOLUTION CL;
+	COVTEST / WALD;
+
+
+ods output CovParms = covp;
+
+PROC GLIMMIX DATA=WORK.sample METHOD=LAPLACE NOCLPRINT;
+	CLASS YEAR MAKE;
+	MODEL INJ_SEVR = MANV_ATTEMPT SPEEDING DRINKING / CL DIST=MULTI LINK=CLOGIT SOLUTION ODDSRATIO (DIFF=FIRST LABEL);
+	RANDOM INTERCEPT / SUBJECT = YEAR(MAKE) TYPE=VC SOLUTION CL;
+	COVTEST / WALD;
+
+PROC PRINT DATA = WORK.covp;
+RUN;
+
+data icc;
+  set covp;
+   icc = estimate / (estimate + 3.29);
+  run;
+proc print data = icc;
+run;
+
+
+
+/*interaction class ROUTE*/
+
+
+/*model with all predictors and moderater MAKE*/
+
+ods output CovParms = covp;
+
+PROC GLIMMIX DATA=WORK.sample METHOD=LAPLACE NOCLPRINT;
+	CLASS YEAR ROUTE;
+	MODEL INJ_SEVR = MANV_ATTEMPT SPEEDING DRINKING / CL DIST=MULTI LINK=CLOGIT SOLUTION ODDSRATIO (DIFF=FIRST LABEL);
+	RANDOM INTERCEPT / SUBJECT = YEAR(ROUTE) TYPE=VC SOLUTION CL;
+	COVTEST / WALD;
+
+PROC PRINT DATA = WORK.covp;
+RUN;
+
+data icc;
+  set covp;
+   icc = estimate / (estimate + 3.29);
+  run;
+proc print data = icc;
+run;
+
+
+
+
+
+/********************/
+
+PROC GLIMMIX DATA=WORK.sample METHOD=LAPLACE NOCLPRINT;
+	CLASS COUNTY_ROAD;
+	MODEL INJ_SEV = MDRMANAV DR_DRINK / CL DIST=MULTI LINK=CLOGIT SOLUTION ODDSRATIO (DIFF=FIRST LABEL);
+	RANDOM INTERCEPT / SUBJECT = COUNTY_ROAD TYPE=VC SOLUTION CL;
+	COVTEST / WALD;
+
+PROC GLIMMIX DATA=WORK.sample METHOD=LAPLACE NOCLPRINT;
+	CLASS WEATHER;
+	MODEL INJ_SEV = / CL DIST=MULTI LINK=CLOGIT SOLUTION ODDSRATIO (DIFF=FIRST LABEL);
+	RANDOM INTERCEPT / SUBJECT = WEATHER TYPE=VC SOLUTION CL;
+	COVTEST / WALD;
+
+/*Speed related factor will moderate the relationship betn DR realted fadtors and INJ_SEV*/
+PROC GLIMMIX DATA=WORK.sample METHOD=LAPLACE NOCLPRINT;
+	CLASS SPEED_YES AGE;
+	MODEL INJ_SEV = DR_SF1 DR_SF2 DR_SF3 DR_SF4  / CL DIST=MULTI LINK=CLOGIT SOLUTION ODDSRATIO (DIFF=FIRST LABEL);
+	RANDOM INTERCEPT / SUBJECT= TYPE=VC SOLUTION CL;
+	COVTEST / WALD;
+
+
+
+/*MDRMANAV MANV_UNKNOWN DR_DRINK DRINKING_UNKNOWN SPEED_YES SPEED_UNKNOWN*/
+
+/*Road Type (ROUTE) will moderate the relationship betn DR realted fadtors and INJ_SEV*/
+PROC GLIMMIX DATA=WORK.sample METHOD=LAPLACE NOCLPRINT;
+	CLASS ROUTE;
+	MODEL INJ_SEV = DR_SF1 DR_SF2 DR_SF3 DR_SF4/ CL DIST=MULTI LINK=CLOGIT SOLUTION ODDSRATIO (DIFF=FIRST LABEL);
+	RANDOM INTERCEPT / SUBJECT=ROUTE TYPE=VC SOLUTION CL;
+	COVTEST / WALD;
+
+/*Driver age (AGE) will moderate the relationship betn DR realted fadtors and INJ_SEV*/
+PROC GLIMMIX DATA=WORK.sample METHOD=LAPLACE NOCLPRINT;
+	CLASS AGE;
+	MODEL INJ_SEV = DR_SF1 DR_SF2 DR_SF3 DR_SF4/ CL DIST=MULTI LINK=CLOGIT SOLUTION ODDSRATIO (DIFF=FIRST LABEL);
+	RANDOM INTERCEPT / SUBJECT=AGE TYPE=VC SOLUTION CL;
+	COVTEST / WALD;
+
+/*Driver age (AGE) will moderate the relationship betn DR realted fadtors and INJ_SEV*/
+PROC GLIMMIX DATA=WORK.sample METHOD=LAPLACE NOCLPRINT;
+	CLASS WEATHER;
+	MODEL INJ_SEV = DR_SF1 DR_SF2 DR_SF3 DR_SF4/ CL DIST=MULTI LINK=CLOGIT SOLUTION ODDSRATIO (DIFF=FIRST LABEL);
+	RANDOM INTERCEPT / SUBJECT=WEATHER TYPE=VC SOLUTION CL;
+	COVTEST / WALD;
